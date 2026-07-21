@@ -13,6 +13,7 @@ type Provider interface {
 	// Returns the base64 encoded image, or an error if it failed.
 	GenerateImage(ctx context.Context, key string, model string, prompt string) (string, error)
 
-	// SupportedModels returns a list of model names supported by this provider.
-	SupportedModels() []string
+	// GetModels returns a list of model names supported by this provider.
+	// It can use the provided keys to dynamically fetch the list from the API.
+	GetModels(ctx context.Context, keys []string) []string
 }

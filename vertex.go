@@ -20,11 +20,11 @@ func (p *VertexProvider) ID() string {
 	return "vertex"
 }
 
-func (p *VertexProvider) SupportedModels() []string {
+func (p *VertexProvider) GetModels(ctx context.Context, keys []string) []string {
 	return []string{
+		"gemini-3.1-flash-lite-image",
 		"gemini-3.1-flash-image",
 		"gemini-3-pro-image",
-		"gemini-2.5-flash-image",
 	}
 }
 

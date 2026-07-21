@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type AIStudioProvider struct{}
@@ -19,12 +20,63 @@ func (p *AIStudioProvider) ID() string {
 	return "ai-studio"
 }
 
-func (p *AIStudioProvider) SupportedModels() []string {
-	return []string{
+func (p *AIStudioProvider) GetModels(ctx context.Context, keys []string) []string {
+	defaultModels := []string{
+		"gemini-3.1-flash-lite-image",
 		"gemini-3.1-flash-image",
 		"gemini-3-pro-image",
-		"gemini-2.5-flash-image",
 	}
+
+	if len(keys) == 0 {
+		return defaultModels
+	}
+
+	for _, key := range keys {
+		url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models?key=%s", key)
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			continue
+		}
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			continue
+		}
+
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			continue
+		}
+
+		var apiResp struct {
+			Models []struct {
+				Name string `json:"name"`
+			} `json:"models"`
+		}
+		if err := json.Unmarshal(respBody, &apiResp); err != nil {
+			continue
+		}
+
+		var dynamicModels []string
+		for _, m := range apiResp.Models {
+			name := strings.TrimPrefix(m.Name, "models/")
+			if strings.Contains(name, "image") {
+				dynamicModels = append(dynamicModels, name)
+			}
+		}
+
+		if len(dynamicModels) > 0 {
+			return dynamicModels
+		}
+	}
+
+	return defaultModels
 }
 
 type PredictRequest struct {

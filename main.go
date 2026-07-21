@@ -44,7 +44,7 @@ func main() {
 		for id, p := range providers {
 			infos = append(infos, ProviderInfo{
 				ID:              id,
-				SupportedModels: p.SupportedModels(),
+				SupportedModels: p.GetModels(ctx, ks.GetKeys(id)),
 				ConfiguredKeys:  summary[id],
 			})
 		}
