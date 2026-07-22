@@ -79,38 +79,19 @@ func (p *AIStudioProvider) GetModels(ctx context.Context, keys []string) []strin
 	return defaultModels
 }
 
-type PredictRequest struct {
-	Instances []PredictInstance `json:"instances"`
-	Parameters PredictParams    `json:"parameters"`
-}
-
-type PredictInstance struct {
-	Prompt string `json:"prompt"`
-}
-
-type PredictParams struct {
-	SampleCount int `json:"sampleCount"`
-}
-
-type PredictResponse struct {
-	Predictions []struct {
-		BytesBase64Encoded string `json:"bytesBase64Encoded"`
-	} `json:"predictions"`
-	Error *struct {
-		Message string `json:"message"`
-		Code    int    `json:"code"`
-	} `json:"error"`
-}
-
 func (p *AIStudioProvider) GenerateImage(ctx context.Context, key string, model string, prompt string) (string, error) {
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:predict?key=%s", model, key)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, key)
 
-	reqBody := PredictRequest{
-		Instances: []PredictInstance{
-			{Prompt: prompt},
+	reqBody := GenerateContentRequest{
+		Contents: []Content{
+			{
+				Parts: []Part{
+					{Text: prompt},
+				},
+			},
 		},
-		Parameters: PredictParams{
-			SampleCount: 1,
+		GenerationConfig: GenerationConfig{
+			ResponseModalities: []string{"IMAGE"},
 		},
 	}
 
@@ -141,7 +122,7 @@ func (p *AIStudioProvider) GenerateImage(ctx context.Context, key string, model 
 		return "", fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
-	var apiResp PredictResponse
+	var apiResp GenerateContentResponse
 	if err := json.Unmarshal(respBody, &apiResp); err != nil {
 		return "", fmt.Errorf("failed to decode response: %w", err)
 	}
@@ -150,9 +131,9 @@ func (p *AIStudioProvider) GenerateImage(ctx context.Context, key string, model 
 		return "", fmt.Errorf("API returned error: %s", apiResp.Error.Message)
 	}
 
-	if len(apiResp.Predictions) == 0 || apiResp.Predictions[0].BytesBase64Encoded == "" {
+	if len(apiResp.Candidates) == 0 || len(apiResp.Candidates[0].Content.Parts) == 0 || apiResp.Candidates[0].Content.Parts[0].InlineData == nil {
 		return "", fmt.Errorf("no image returned in response")
 	}
 
-	return apiResp.Predictions[0].BytesBase64Encoded, nil
+	return apiResp.Candidates[0].Content.Parts[0].InlineData.Data, nil
 }

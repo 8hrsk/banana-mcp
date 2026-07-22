@@ -17,3 +17,41 @@ type Provider interface {
 	// It can use the provided keys to dynamically fetch the list from the API.
 	GetModels(ctx context.Context, keys []string) []string
 }
+
+type GenerateContentRequest struct {
+	Contents         []Content        `json:"contents"`
+	GenerationConfig GenerationConfig `json:"generationConfig"`
+}
+
+type Content struct {
+	Parts []Part `json:"parts"`
+}
+
+type Part struct {
+	Text       string      `json:"text,omitempty"`
+	InlineData *InlineData `json:"inlineData,omitempty"`
+}
+
+type InlineData struct {
+	MimeType string `json:"mimeType"`
+	Data     string `json:"data"`
+}
+
+type GenerationConfig struct {
+	ResponseModalities []string `json:"responseModalities"`
+}
+
+type GenerateContentResponse struct {
+	Candidates []Candidate `json:"candidates"`
+	Error      *APIError   `json:"error,omitempty"`
+}
+
+type Candidate struct {
+	Content Content `json:"content"`
+}
+
+type APIError struct {
+	Message string `json:"message"`
+	Code    int    `json:"code"`
+}
+

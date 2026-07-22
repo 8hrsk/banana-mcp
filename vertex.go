@@ -38,14 +38,18 @@ func (p *VertexProvider) GenerateImage(ctx context.Context, key string, model st
 	region := parts[1]
 	token := parts[2]
 
-	url := fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:predict", region, projectID, region, model)
+	url := fmt.Sprintf("https://%s-aiplatform.googleapis.com/v1/projects/%s/locations/%s/publishers/google/models/%s:generateContent", region, projectID, region, model)
 
-	reqBody := PredictRequest{
-		Instances: []PredictInstance{
-			{Prompt: prompt},
+	reqBody := GenerateContentRequest{
+		Contents: []Content{
+			{
+				Parts: []Part{
+					{Text: prompt},
+				},
+			},
 		},
-		Parameters: PredictParams{
-			SampleCount: 1,
+		GenerationConfig: GenerationConfig{
+			ResponseModalities: []string{"IMAGE"},
 		},
 	}
 
@@ -77,7 +81,7 @@ func (p *VertexProvider) GenerateImage(ctx context.Context, key string, model st
 		return "", fmt.Errorf("API error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
-	var apiResp PredictResponse
+	var apiResp GenerateContentResponse
 	if err := json.Unmarshal(respBody, &apiResp); err != nil {
 		return "", fmt.Errorf("failed to decode response: %w", err)
 	}
@@ -86,9 +90,9 @@ func (p *VertexProvider) GenerateImage(ctx context.Context, key string, model st
 		return "", fmt.Errorf("API returned error: %s", apiResp.Error.Message)
 	}
 
-	if len(apiResp.Predictions) == 0 || apiResp.Predictions[0].BytesBase64Encoded == "" {
+	if len(apiResp.Candidates) == 0 || len(apiResp.Candidates[0].Content.Parts) == 0 || apiResp.Candidates[0].Content.Parts[0].InlineData == nil {
 		return "", fmt.Errorf("no image returned in response")
 	}
 
-	return apiResp.Predictions[0].BytesBase64Encoded, nil
+	return apiResp.Candidates[0].Content.Parts[0].InlineData.Data, nil
 }
