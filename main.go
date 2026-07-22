@@ -126,7 +126,7 @@ func main() {
 			}
 
 			for i, key := range keys {
-				imgBase64, err := p.GenerateImage(ctx, key, model, prompt)
+				imgBase64, mimeType, err := p.GenerateImage(ctx, key, model, prompt)
 				if err != nil {
 					fallbackLogs = append(fallbackLogs, fmt.Sprintf("[%s] Key %d failed: %v", p.ID(), i+1, err))
 					continue
@@ -138,7 +138,7 @@ func main() {
 				result.Content = append(result.Content, mcp.ImageContent{
 					Type:     "image",
 					Data:     imgBase64,
-					MIMEType: "image/jpeg",
+					MIMEType: mimeType,
 				})
 				return result, nil
 			}

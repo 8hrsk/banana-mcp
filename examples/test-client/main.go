@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/mark3labs/mcp-go/client"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -12,8 +13,12 @@ import (
 func main() {
 	ctx := context.Background()
 
-	// Start the MCP server process
-	c, err := client.NewStdioMCPClient("../../banana-mcp", []string{})
+	binaryPath := "./banana-mcp"
+	if len(os.Args) > 1 {
+		binaryPath = os.Args[1]
+	}
+
+	c, err := client.NewStdioMCPClient(binaryPath, []string{})
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
@@ -28,59 +33,16 @@ func main() {
 		log.Fatalf("init failed: %v", err)
 	}
 
-	fmt.Println("✅ MCP Server Initialized")
+	fmt.Println("MCP Server Initialized")
 
-	// Call add_api_key
-	fmt.Println("\n🔧 Adding Dummy Key 1 (AI Studio)...")
-	res1, err := c.CallTool(ctx, mcp.CallToolRequest{
-		Request: mcp.Request{Method: "tools/call"},
-		Params: mcp.CallToolParams{
-			Name: "add_api_key",
-			Arguments: map[string]interface{}{
-				"provider": "ai-studio",
-				"key":      "invalid-key-1",
-			},
-		},
-	})
-	if err != nil {
-		log.Fatalf("call failed: %v", err)
-	}
-	fmt.Printf("Response: %s\n", res1.Content[0].(mcp.TextContent).Text)
-
-	fmt.Println("\n🔧 Adding Dummy Key 2 (AI Studio)...")
-	c.CallTool(ctx, mcp.CallToolRequest{
-		Request: mcp.Request{Method: "tools/call"},
-		Params: mcp.CallToolParams{
-			Name: "add_api_key",
-			Arguments: map[string]interface{}{
-				"provider": "ai-studio",
-				"key":      "invalid-key-2",
-			},
-		},
-	})
-	fmt.Println("Response: Successfully added key")
-
-	// Call get_configuration
-	fmt.Println("\n📊 Getting Configuration...")
-	resConfig, err := c.CallTool(ctx, mcp.CallToolRequest{
-		Request: mcp.Request{Method: "tools/call"},
-		Params: mcp.CallToolParams{
-			Name: "get_configuration",
-		},
-	})
-	if err != nil {
-		log.Fatalf("call failed: %v", err)
-	}
-	fmt.Printf("Config:\n%s\n", resConfig.Content[0].(mcp.TextContent).Text)
-
-	// Call generate_image (should fallback and fail)
-	fmt.Println("\n🎨 Generating Image (Should fallback through both keys and return error)...")
-	res2, err := c.CallTool(ctx, mcp.CallToolRequest{
+	// Test generate_image with default model (gemini-3.1-flash-image)
+	fmt.Println("\nGenerating image with default model (Nano Banana 2)...")
+	res, err := c.CallTool(ctx, mcp.CallToolRequest{
 		Request: mcp.Request{Method: "tools/call"},
 		Params: mcp.CallToolParams{
 			Name: "generate_image",
 			Arguments: map[string]interface{}{
-				"prompt":   "A photorealistic banana in space",
+				"prompt":   "A cute banana wearing sunglasses",
 				"provider": "ai-studio",
 			},
 		},
@@ -88,10 +50,22 @@ func main() {
 	if err != nil {
 		log.Fatalf("call failed: %v", err)
 	}
-	
-	if res2.IsError {
-		fmt.Printf("Expected Error Output:\n%s\n", res2.Content[0].(mcp.TextContent).Text)
+
+	if res.IsError {
+		fmt.Printf("ERROR: %s\n", res.Content[0].(mcp.TextContent).Text)
+		os.Exit(1)
+	}
+
+	// Check the text content
+	fmt.Printf("Text: %s\n", res.Content[0].(mcp.TextContent).Text)
+
+	// Check the image content
+	if len(res.Content) > 1 {
+		imgContent := res.Content[1].(mcp.ImageContent)
+		fmt.Printf("Image MIME: %s\n", imgContent.MIMEType)
+		fmt.Printf("Image Data Length: %d bytes\n", len(imgContent.Data))
+		fmt.Println("SUCCESS: Image generated!")
 	} else {
-		fmt.Println("Unexpectedly succeeded.")
+		fmt.Println("WARNING: No image content in response")
 	}
 }
