@@ -17,9 +17,23 @@ The server is built with a focus on speed, reliability, and security. It feature
 
 Once connected to an MCP client, the following tools become available to the AI agent:
 
-- `get_configuration`: Returns a list of available providers, their supported models, and the number of API keys currently configured for each provider.
+- `get_configuration`: Returns available providers, their supported models, **each model's supported generation options** (aspect ratios, resolutions, thinking levels), and the number of API keys configured per provider. The server fetches models from Google and caches them (10 min TTL) so agents don't spend tokens on discovery.
 - `add_api_key`: Accepts a provider ID and an API key string, saving it securely for future generations.
-- `generate_image`: Takes a natural language prompt and optional model/provider arguments to generate an image. Returns the base64-encoded image along with a log of any key fallback events that occurred during the process.
+- `generate_image`: Takes a natural language prompt plus optional `provider`, `model`, `aspect_ratio`, `resolution`, and `thinking_level` arguments. **The generated image is written to a temp directory and the tool returns its file path** (the image is also included inline). A log of any key-fallback events is returned alongside.
+
+### Generation options
+
+Discover valid values per model via `get_configuration`. Typical values:
+
+- `aspect_ratio`: `1:1`, `2:3`, `3:2`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9`
+- `resolution`: `1K`, `2K` (flash), up to `4K` (pro image models)
+- `thinking_level`: `LOW`, `HIGH` — **`*-pro-image` models only**
+
+### Output location
+
+Generated images are saved to `<os-temp>/banana-mcp` by default. Override with the `BANANA_MCP_OUTPUT_DIR` environment variable.
+
+See [AGENTS.md](AGENTS.md) for concise agent usage instructions (also served automatically via the MCP `instructions` handshake field).
 
 ## Installation and Setup
 
