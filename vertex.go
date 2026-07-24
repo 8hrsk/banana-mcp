@@ -28,7 +28,7 @@ func (p *VertexProvider) GetModels(ctx context.Context, keys []string) []string 
 	}
 }
 
-func (p *VertexProvider) GenerateImage(ctx context.Context, key string, model string, prompt string) (string, string, error) {
+func (p *VertexProvider) GenerateImage(ctx context.Context, key string, model string, prompt string, opts ImageOptions) (string, string, error) {
 	// key format: "projectID:region:token"
 	parts := strings.SplitN(key, ":", 3)
 	if len(parts) != 3 {
@@ -48,9 +48,7 @@ func (p *VertexProvider) GenerateImage(ctx context.Context, key string, model st
 				},
 			},
 		},
-		GenerationConfig: GenerationConfig{
-			ResponseModalities: []string{"IMAGE"},
-		},
+		GenerationConfig: buildGenerationConfig(opts),
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)

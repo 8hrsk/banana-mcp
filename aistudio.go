@@ -79,7 +79,7 @@ func (p *AIStudioProvider) GetModels(ctx context.Context, keys []string) []strin
 	return defaultModels
 }
 
-func (p *AIStudioProvider) GenerateImage(ctx context.Context, key string, model string, prompt string) (string, string, error) {
+func (p *AIStudioProvider) GenerateImage(ctx context.Context, key string, model string, prompt string, opts ImageOptions) (string, string, error) {
 	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", model, key)
 
 	reqBody := GenerateContentRequest{
@@ -90,9 +90,7 @@ func (p *AIStudioProvider) GenerateImage(ctx context.Context, key string, model 
 				},
 			},
 		},
-		GenerationConfig: GenerationConfig{
-			ResponseModalities: []string{"IMAGE"},
-		},
+		GenerationConfig: buildGenerationConfig(opts),
 	}
 
 	bodyBytes, err := json.Marshal(reqBody)
